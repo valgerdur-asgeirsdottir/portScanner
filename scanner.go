@@ -1,5 +1,24 @@
 package main
 
+import (
+	"fmt"
+	"log"
+	"net"
+	"strings"
+	"sort"
+	"strconv"
+	"sync"
+)
+
+func main(){
+	var(
+		string ports,
+		string[] hosts
+	)
+}
+
+
+
 // Scan represents the scan parameters
 /*type Scan struct {
 	minPort int
