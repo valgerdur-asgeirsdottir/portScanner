@@ -4,20 +4,44 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 	"sort"
-	"strconv"
+	"strings"
 	"sync"
 )
 
-func main(){
-	var(
-		string ports,
-		string[] hosts
+func main() {
+	var (
+		ports string
+		hosts []string
 	)
+
+	ports = "5"
+	if ports == "5" {
+		hosts = append(hosts, "5")
+	}
+	fmt.Print("something")
+	log.Default()
+	sort.Strings(hosts)
+	strings.Contains(ports, "a")
+	type SafeCounter struct {
+		mu sync.Mutex
+		v  map[string]int
+	}
+
+	ln, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		// handle error
+	}
+	for {
+		//conn, err := ln.Accept()
+		if err != nil {
+			// handle error
+		}
+
+		//go handleConnection(conn)
+	}
+
 }
-
-
 
 // Scan represents the scan parameters
 /*type Scan struct {
