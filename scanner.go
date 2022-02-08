@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -14,12 +15,17 @@ func main() {
 		ports string
 		hosts []string
 	)
-
+	fmt.Scanf("%s", &ports)
 	ports = "5"
 	if ports == "5" {
 		hosts = append(hosts, "5")
 	}
+	var name string
+	flag.StringVar(&name, "name", "guest", "your name")
+	flag.Parse()
+
 	fmt.Print("something")
+
 	log.Default()
 	sort.Strings(hosts)
 	strings.Contains(ports, "a")
@@ -33,14 +39,18 @@ func main() {
 		// handle error
 	}
 	for {
-		//conn, err := ln.Accept()
+		conn, err := ln.Accept()
 		if err != nil {
 			// handle error
 		}
 
-		//go handleConnection(conn)
+		go handleConnection(conn)
 	}
 
+}
+
+func handleConnection(conn net.Conn) {
+	panic("unimplemented")
 }
 
 // Scan represents the scan parameters
