@@ -10,21 +10,26 @@ import (
 	"sync"
 )
 
+// taka strenginn úr command prompt
+// brjóta strenginn niður í ports og hosts
+// scanna hvert port á hverjum host og prenta hvort það sé opið eða lokað
+
 func main() {
 	var (
-		ports string
-		hosts []string
+		inputArgsstr string
+		ports        string
+		hosts        []string
 	)
 	fmt.Scanf("%s", &ports)
 	ports = "5"
 	if ports == "5" {
 		hosts = append(hosts, "5")
 	}
-	var name string
-	flag.StringVar(&name, "name", "guest", "your name")
-	flag.Parse()
 
-	fmt.Print("something")
+	flag.StringVar(&inputArgsstr, "inputArgsstr", inputArgsstr, inputArgsstr)
+	flag.Parse()
+	resInputArr := strings.Split(inputArgsstr, " ")
+	fmt.Print(resInputArr)
 
 	log.Default()
 	sort.Strings(hosts)
