@@ -9,7 +9,7 @@ Explainations of the functions and data flow can be found in the code comments o
 * go.mod
 This file creates a new go module, initializing go for this project.
 * .gitignore
-This file contains the names all files and directories to be ignored when commiting that are relevant for a go project.
+Since git was used for collaboration in this project, this file contains the names all files and directories to be ignored when commiting that are relevant for a go project.
 
 - Explanations and reasoning
 
