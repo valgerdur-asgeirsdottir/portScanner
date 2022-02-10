@@ -5,243 +5,114 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
-// taka strenginn úr command prompt
-// brjóta strenginn niður í ports og hosts
-// scanna hvert port á hverjum host og prenta hvort það sé opið eða lokað
-
-func main() {
-	var (
-		inputArgsstr string
-		ports        string
-		hosts        []string
-	)
-
-	flag.StringVar(&inputArgsstr, "ports and hosts", "1-5,6,7 icelandair.is google.com", "write ports with a comma as seperator and hosts with whitespace as seperator")
-	flag.Parse()
-	resInputArr := strings.Split(inputArgsstr, " ")
-	fmt.Print(resInputArr)
-	ports = resInputArr[0]
-	for i := 1; i < len(resInputArr); i++ {
-		hosts = append(hosts, resInputArr[i])
+/* Takes in an IP address and increments it by one */
+func incrAddress(ip net.IP) {
+	for i := len(ip) - 1; i >= 0; i-- {
+		ip[i]++
+		if ip[i] != 0 {
+			break
+		}
 	}
+}
+
+/* Takes in host, port, timeout and channel
+Checks connection for the port on the host
+Reads from the channel */
+func checkConnection(host string, port string, timeout int, c chan int) {
+	dest := net.JoinHostPort(host, port) // combine host and port into string
+	// try to get a connection for the port on the host, check if the channel is open
+	connection, err := net.DialTimeout("tcp", dest, time.Duration(timeout)*time.Millisecond)
+	if err == nil {
+		// no error, channel is open
+		fmt.Println(dest, " open")
+		connection.Close()
+	} else {
+		// handle error, channel is closed
+		fmt.Println(dest, " closed")
+	}
+	<-c // read from the input channel
+}
+
+/* This is the concurrent port scanner */
+func main() {
+
+	var (
+		ports string
+		hosts []string
+	)
+	// read console input from user
+	flag.StringVar(&ports, "p", "", "write ports with a comma as seperator")
+	flag.Parse()
+	hosts = flag.Args()
+
+	// terminate if no input was found
+	if ports == "" || len(hosts) == 0 {
+		log.Fatal("please supply ports and hosts")
+	}
+
 	portArr := strings.Split(ports, ",")
-	var portsArr2 []string
+
+	var allPorts []string
+
+	// add given ranges of ports one by one, if any, to the array
 	for i := 0; i < len(portArr); i++ {
 		if strings.Contains(portArr[i], "-") {
-			res := strings.Split(inputArgsstr, "-")
-			int1, err1 := strconv.ParseInt(res[0], 6, 12)
-			int2, err2 := strconv.ParseInt(res[1], 6, 12)
-			if err1 != nil || err2 != nil {
-				//handle error
+			res := strings.Split(portArr[i], "-")
+			int1, err1 := strconv.Atoi(res[0])
+			int2, err2 := strconv.Atoi(res[1])
+			if err1 != nil || err2 != nil || int1 > int2 || int2 > 65536 { // 65536 is the largest port possible
+				log.Fatal("incorrect format of ports")
 			}
-			for j := int1; j < int2; j++ {
-				numStr := strconv.FormatInt(j, 10)
-				portsArr2 = append(portsArr2, numStr)
+			for j := int1; j <= int2; j++ {
+				numStr := strconv.Itoa(j) // convert int to string
+				allPorts = append(allPorts, numStr)
 			}
 		} else {
-			portsArr2 = append(portsArr2, portArr[i])
-		}
-
-	}
-	for i := 0; i < len(hosts); i++ {
-		if strings.Contains(hosts[i], "/") {
-			addr := strings.Split(hosts[i], "/")
-			var ip string = addr[0]
-			mask, err := strconv.ParseInt(addr[1], 6, 12)
+			_, err := strconv.Atoi(portArr[i]) // check if port is int
 			if err != nil {
-				//handle error
+				log.Fatal("incorrect format of ports")
 			}
+			allPorts = append(allPorts, portArr[i])
+		}
 
+	}
+
+	var allHosts []string
+
+	// scan all ip addresses in ranges, if any, to get all hosts
+	for _, host := range hosts {
+		var hostArr []net.IP
+		if ip, ipnet, err := net.ParseCIDR(host); err == nil {
+			first_ip := ip.Mask(ipnet.Mask)
+			for ; ipnet.Contains(first_ip); incrAddress(first_ip) { // go through all ip addresses in range
+				hostArr = append(hostArr, first_ip)
+			}
+			hostArr = hostArr[1 : len(hostArr)-1] // skip the first and last addresses in range since they are reserved
+			for _, h := range hostArr {
+				allHosts = append(allHosts, h.String())
+			}
+		} else {
+			allHosts = append(allHosts, host) // if host is not an ip address range add straight away
 		}
 	}
-	//check if connection is open for every port with every host
-	var (
-		dest    string
-		timeout int = 50
-	)
 
-	for i := 0; i < len(hosts); i++ {
-		host := hosts[i]
-		var address []string
-		address = append(address, host)
-		for j := 0; j < len(portArr); j++ {
-			port := portsArr2[j]
-			address = append(address, port)
-			dest = strings.Join(address, ":")
-			connection, err := net.DialTimeout("tcp", dest, time.Duration(timeout)*time.Millisecond)
-			if err != nil {
-				// handle error
-			}
+	var timeout int = 500     // 500 ms timeout
+	c := make(chan int, 1024) // max 1024 goroutines to safely be able to read the ports
 
-			fmt.Print(hosts[i], ":", portArr[j], " open")
+	// check if connection is open for every port with every host
+	for _, host := range allHosts {
+		for _, port := range allPorts {
+			c <- 1 // try to write to the channel
+			go checkConnection(host, port, timeout, c)
 		}
 	}
-
-	log.Default()
-	sort.Strings(hosts)
-	strings.Contains(ports, "a")
-	type SafeCounter struct {
-		mu sync.Mutex
-		v  map[string]int
-	}
-
-	ln, err := net.Listen("tcp", ":8080")
-	if err != nil {
-		// handle error
-	}
-	for {
-		conn, err := ln.Accept()
-
-		go handleConnection(conn)
-	}
-
-}
-
-func handleConnection(conn net.Conn) {
-	panic("unimplemented")
-}
-
-// Scan represents the scan parameters
-/*type Scan struct {
-	minPort int
-	maxPort int
-	target  string
-}
-
-// NewScan creats scan object
-func NewScan(args string, cfg cli.Config) (Scan, error) {
-	var (
-		scan Scan
-		flag map[string]interface{}
-		err  error
-	)
-
-	args, flag = cli.Flag(args)
-	// help
-	if _, ok := flag["help"]; ok || args == "" {
-		help(cfg)
-		return scan, fmt.Errorf("")
-	}
-
-	pRange := cli.SetFlag(flag, "p", cfg.Scan.Port).(string)
-
-	re := regexp.MustCompile(`(\d+)(\-{0,1}(\d*))`)
-	f := re.FindStringSubmatch(pRange)
-
-	if len(f) != 4 {
-		return scan, fmt.Errorf("error! please try scan help")
-	}
-
-	scan.target = args
-	if len(f) == 4 && f[2] != "" {
-		scan.minPort, err = strconv.Atoi(f[1])
-		scan.maxPort, err = strconv.Atoi(f[3])
-	} else {
-		scan.minPort, err = strconv.Atoi(f[1])
-		scan.maxPort, err = strconv.Atoi(f[1])
-	}
-
-	if err != nil {
-		return scan, err
-	}
-
-	if !scan.IsCIDR() {
-		ipAddr, err := net.ResolveIPAddr("ip", scan.target)
-		if err != nil {
-			return scan, err
-		}
-		scan.target = ipAddr.String()
-	} else {
-		return scan, fmt.Errorf("it doesn't support CIDR")
-	}
-
-	return scan, nil
-}
-
-// IsCIDR checks the target if it's CIDR
-func (s Scan) IsCIDR() bool {
-	_, _, err := net.ParseCIDR(s.target)
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-// Run tries to scan wide range ports (TCP)
-func (s Scan) Run() {
-	if !s.IsCIDR() {
-		host(s.target, s.minPort, s.maxPort)
+	// write to the channel so the goroutines can start and finish before the program terminates
+	for i := 0; i < 1024; i++ {
+		c <- 1
 	}
 }
-*/
-// host tries to scan a single host
-/*func host(ipAddr string, minPort, maxPort int) {
-	var (
-		wg      sync.WaitGroup
-		tStart  = time.Now()
-		counter int
-	)
-
-	var ports []int
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Protocol", "Port", "Status"})
-
-	for i := minPort; i <= maxPort; i++ {
-		wg.Add(1)
-		go func(i int) {
-			for {
-				conn, err := net.DialTimeout("tcp", net.JoinHostPort(ipAddr, fmt.Sprintf("%d", i)), 2*time.Second)
-				if err != nil {
-					if strings.Contains(err.Error(), "too many open files") {
-						// random back-off
-						time.Sleep(time.Duration(10+rand.Int31n(30)) * time.Millisecond)
-						continue
-					}
-					wg.Done()
-					return
-				}
-				conn.Close()
-				break
-			}
-			counter++
-			ports = append(ports, i)
-			wg.Done()
-		}(i)
-	}
-
-	wg.Wait()
-
-	sort.Ints(ports)
-	for i := range ports {
-		table.Append([]string{"TCP", fmt.Sprintf("%d", ports[i]), "Open"})
-	}
-	table.Render()
-
-	if counter == 0 {
-		println("there isn't any opened port")
-	} else {
-		elapsed := fmt.Sprintf("%.3f seconds", time.Since(tStart).Seconds())
-		println("Scan done:", counter, "opened port(s) found in", elapsed)
-	}
-}*/
-
-// help represents guide to user
-/*func help(cfg cli.Config) {
-	fmt.Printf(`
-    usage:
-          scan ip/host [option]
-    options:
-          -p port-range or port number      specified range or port number (default is %s)
-    example:
-          scan 8.8.8.8 -p 53
-          scan www.google.com -p 1-500
-	`,
-		cfg.Scan.Port)
-}*/
