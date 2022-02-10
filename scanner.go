@@ -22,11 +22,6 @@ func main() {
 		ports        string
 		hosts        []string
 	)
-	fmt.Scanf("%s", &ports)
-	ports = "5"
-	if ports == "5" {
-		hosts = append(hosts, "5")
-	}
 
 	flag.StringVar(&inputArgsstr, "ports and hosts", "1-5,6,7 icelandair.is google.com", "write ports with a comma as seperator and hosts with whitespace as seperator")
 	flag.Parse()
@@ -37,7 +32,7 @@ func main() {
 		hosts = append(hosts, resInputArr[i])
 	}
 	portArr := strings.Split(ports, ",")
-	var portsInt []int
+	var portsArr2 []string
 	for i := 0; i < len(portArr); i++ {
 		if strings.Contains(portArr[i], "-") {
 			res := strings.Split(inputArgsstr, "-")
@@ -47,26 +42,44 @@ func main() {
 				//handle error
 			}
 			for j := int1; j < int2; j++ {
-				portsInt = append(portsInt, j)
+				numStr := strconv.FormatInt(j, 10)
+				portsArr2 = append(portsArr2, numStr)
 			}
 		} else {
-			int3, err3 := strconv.ParseInt(portArr[i], 6, 12)
-			portsInt = append(portsInt, int3)
+			portsArr2 = append(portsArr2, portArr[i])
 		}
 
+	}
+	for i := 0; i < len(hosts); i++ {
+		if strings.Contains(hosts[i], "/") {
+			addr := strings.Split(hosts[i], "/")
+			var ip string = addr[0]
+			mask, err := strconv.ParseInt(addr[1], 6, 12)
+			if err != nil {
+				//handle error
+			}
+
+		}
 	}
 	//check if connection is open for every port with every host
 	var (
 		dest    string
 		timeout int = 50
 	)
+
 	for i := 0; i < len(hosts); i++ {
-		dest = hosts[i]
+		host := hosts[i]
+		var address []string
+		address = append(address, host)
 		for j := 0; j < len(portArr); j++ {
+			port := portsArr2[j]
+			address = append(address, port)
+			dest = strings.Join(address, ":")
 			connection, err := net.DialTimeout("tcp", dest, time.Duration(timeout)*time.Millisecond)
 			if err != nil {
 				// handle error
 			}
+
 			fmt.Print(hosts[i], ":", portArr[j], " open")
 		}
 	}
