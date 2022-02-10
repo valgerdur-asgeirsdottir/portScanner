@@ -102,7 +102,7 @@ func main() {
 	}
 
 	var timeout int = 500     // 500 ms timeout
-	c := make(chan int, 1024) // max 1024 goroutines to safely be able to read the ports
+	c := make(chan int, 1024) // max 1024 goroutines because of a cap of file descriptors free to run on the computer
 
 	// check if connection is open for every port with every host
 	for _, host := range allHosts {
