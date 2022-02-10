@@ -1,20 +1,98 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	/*	"log"
-		"net"
-		"strings"
-		"sort"
-		"strconv"
-		"sync"*/)
+	"log"
+	"net"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+)
+
+// taka strenginn úr command prompt
+// brjóta strenginn niður í ports og hosts
+// scanna hvert port á hverjum host og prenta hvort það sé opið eða lokað
 
 func main() {
+	var (
+		inputArgsstr string
+		ports        string
+		hosts        []string
+	)
+	fmt.Scanf("%s", &ports)
+	ports = "5"
+	if ports == "5" {
+		hosts = append(hosts, "5")
+	}
 
-	fmt.Print("Hello world!")
-	/*	ports := string
-		hosts := []string{}*/
+	flag.StringVar(&inputArgsstr, "ports and hosts", "1-5,6,7 icelandair.is google.com", "write ports with a comma as seperator and hosts with whitespace as seperator")
+	flag.Parse()
+	resInputArr := strings.Split(inputArgsstr, " ")
+	fmt.Print(resInputArr)
+	ports = resInputArr[0]
+	for i := 1; i < len(resInputArr); i++ {
+		hosts = append(hosts, resInputArr[i])
+	}
+	portArr := strings.Split(ports, ",")
+	var portsInt []int
+	for i := 0; i < len(portArr); i++ {
+		if strings.Contains(portArr[i], "-") {
+			res := strings.Split(inputArgsstr, "-")
+			int1, err1 := strconv.ParseInt(res[0], 6, 12)
+			int2, err2 := strconv.ParseInt(res[1], 6, 12)
+			if err1 != nil || err2 != nil {
+				//handle error
+			}
+			for j := int1; j < int2; j++ {
+				portsInt = append(portsInt, j)
+			}
+		} else {
+			int3, err3 := strconv.ParseInt(portArr[i], 6, 12)
+			portsInt = append(portsInt, int3)
+		}
 
+	}
+	//check if connection is open for every port with every host
+	var (
+		dest    string
+		timeout int = 50
+	)
+	for i := 0; i < len(hosts); i++ {
+		dest = hosts[i]
+		for j := 0; j < len(portArr); j++ {
+			connection, err := net.DialTimeout("tcp", dest, time.Duration(timeout)*time.Millisecond)
+			if err != nil {
+				// handle error
+			}
+			fmt.Print(hosts[i], ":", portArr[j], " open")
+		}
+	}
+
+	log.Default()
+	sort.Strings(hosts)
+	strings.Contains(ports, "a")
+	type SafeCounter struct {
+		mu sync.Mutex
+		v  map[string]int
+	}
+
+	ln, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		// handle error
+	}
+	for {
+		conn, err := ln.Accept()
+
+		go handleConnection(conn)
+	}
+
+}
+
+func handleConnection(conn net.Conn) {
+	panic("unimplemented")
 }
 
 // Scan represents the scan parameters

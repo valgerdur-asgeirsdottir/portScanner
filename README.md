@@ -1,0 +1,5 @@
+- How do you determine the number of goroutines scanning hosts concurrently?
+- How and under what conditions do you start the goroutines?
+- How do you determine if a goroutine has finished?
+- Why is your solution deadlock free?
+- Do you manage to run as many goroutines as possible at any time?
