@@ -15,7 +15,14 @@ import (
 // taka strenginn úr command prompt
 // brjóta strenginn niður í ports og hosts
 // scanna hvert port á hverjum host og prenta hvort það sé opið eða lokað
-
+func incrAddress(ip net.IP) {
+	for i := len(ip) - 1; i >= 0; i-- {
+		ip[i]++
+		if ip[i] != 0 {
+			break
+		}
+	}
+}
 func main() {
 	var (
 		inputArgsstr string
@@ -23,52 +30,53 @@ func main() {
 		hosts        []string
 	)
 
-	flag.StringVar(&inputArgsstr, "ports and hosts", "1-5,6,7 icelandair.is google.com", "write ports with a comma as seperator and hosts with whitespace as seperator")
+	flag.StringVar(&ports, "ports", "1-5,6,7", "write ports with a comma as seperator")
 	flag.Parse()
-	resInputArr := strings.Split(inputArgsstr, " ")
-	fmt.Print(resInputArr)
-	ports = resInputArr[0]
-	for i := 1; i < len(resInputArr); i++ {
-		hosts = append(hosts, resInputArr[i])
-	}
+	hosts = flag.Args()
+
 	portArr := strings.Split(ports, ",")
 	var portsArr2 []string
 	for i := 0; i < len(portArr); i++ {
 		if strings.Contains(portArr[i], "-") {
 			res := strings.Split(inputArgsstr, "-")
-			int1, err1 := strconv.ParseInt(res[0], 6, 12)
-			int2, err2 := strconv.ParseInt(res[1], 6, 12)
+			int1, err1 := strconv.Atoi(res[0])
+			int2, err2 := strconv.Atoi(res[1])
 			if err1 != nil || err2 != nil {
-				//handle error
+				log.Fatal("Incorrect format of ports")
 			}
 			for j := int1; j < int2; j++ {
-				numStr := strconv.FormatInt(j, 10)
+				numStr := strconv.Itoa(j)
 				portsArr2 = append(portsArr2, numStr)
 			}
 		} else {
+			//todo check if port is int
 			portsArr2 = append(portsArr2, portArr[i])
 		}
 
 	}
+	var allHosts [][]net.IP
 	for i := 0; i < len(hosts); i++ {
-		if strings.Contains(hosts[i], "/") {
-			addr := strings.Split(hosts[i], "/")
-			var ip string = addr[0]
-			mask, err := strconv.ParseInt(addr[1], 6, 12)
-			if err != nil {
-				//handle error
+		var hostArr []net.IP
+		if ip, ipnet, err := net.ParseCIDR(hosts[i]); err == nil {
+			first_ip := ip.Mask(ipnet.Mask)
+			for ; ipnet.Contains(first_ip); incrAddress(first_ip) {
+				hostArr = append(hostArr, first_ip)
 			}
-
 		}
+		hostArr = hostArr[1 : len(hostArr)-1]
+		allHosts = append(allHosts, hostArr)
 	}
+
 	//check if connection is open for every port with every host
 	var (
 		dest    string
 		timeout int = 50
 	)
 
-	for i := 0; i < len(hosts); i++ {
-		host := hosts[i]
+	for i := 0; i < len(allHosts); i++ {
+		for j := 0; j < int(allHosts[i]); j++ {
+
+		}
 		var address []string
 		address = append(address, host)
 		for j := 0; j < len(portArr); j++ {
