@@ -6,8 +6,10 @@ import (
 	"log"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // taka strenginn úr command prompt
@@ -26,10 +28,48 @@ func main() {
 		hosts = append(hosts, "5")
 	}
 
-	flag.StringVar(&inputArgsstr, "inputArgsstr", inputArgsstr, inputArgsstr)
+	flag.StringVar(&inputArgsstr, "ports and hosts", "1-5,6,7 icelandair.is google.com", "write ports with a comma as seperator and hosts with whitespace as seperator")
 	flag.Parse()
 	resInputArr := strings.Split(inputArgsstr, " ")
 	fmt.Print(resInputArr)
+	ports = resInputArr[0]
+	for i := 1; i < len(resInputArr); i++ {
+		hosts = append(hosts, resInputArr[i])
+	}
+	portArr := strings.Split(ports, ",")
+	var portsInt []int
+	for i := 0; i < len(portArr); i++ {
+		if strings.Contains(portArr[i], "-") {
+			res := strings.Split(inputArgsstr, "-")
+			int1, err1 := strconv.ParseInt(res[0], 6, 12)
+			int2, err2 := strconv.ParseInt(res[1], 6, 12)
+			if err1 != nil || err2 != nil {
+				//handle error
+			}
+			for j := int1; j < int2; j++ {
+				portsInt = append(portsInt, j)
+			}
+		} else {
+			int3, err3 := strconv.ParseInt(portArr[i], 6, 12)
+			portsInt = append(portsInt, int3)
+		}
+
+	}
+	//check if connection is open for every port with every host
+	var (
+		dest    string
+		timeout int = 50
+	)
+	for i := 0; i < len(hosts); i++ {
+		dest = hosts[i]
+		for j := 0; j < len(portArr); j++ {
+			connection, err := net.DialTimeout("tcp", dest, time.Duration(timeout)*time.Millisecond)
+			if err != nil {
+				// handle error
+			}
+			fmt.Print(hosts[i], ":", portArr[j], " open")
+		}
+	}
 
 	log.Default()
 	sort.Strings(hosts)
@@ -45,9 +85,6 @@ func main() {
 	}
 	for {
 		conn, err := ln.Accept()
-		if err != nil {
-			// handle error
-		}
 
 		go handleConnection(conn)
 	}
