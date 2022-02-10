@@ -2,22 +2,20 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net"
-	"strings"
-	"sort"
-	"strconv"
-	"sync"
-)
+	/*	"log"
+		"net"
+		"strings"
+		"sort"
+		"strconv"
+		"sync"*/)
 
-func main(){
-	var(
-		string ports,
-		string[] hosts
-	)
+func main() {
+
+	fmt.Print("Hello world!")
+	/*	ports := string
+		hosts := []string{}*/
+
 }
-
-
 
 // Scan represents the scan parameters
 /*type Scan struct {
